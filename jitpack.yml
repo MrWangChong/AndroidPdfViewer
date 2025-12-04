@@ -1,0 +1,6 @@
+# jitpack.yml
+
+# 强制使用兼容旧版 Groovy 和 AGP 的 Java 11
+# 虽然日志显示它最终会升到 17，但从 11 启动有助于解决某些 Groovy 初始化问题
+jdk:
+  - openjdk11

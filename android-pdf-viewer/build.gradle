@@ -4,20 +4,20 @@ ext {
     bintrayRepo = 'maven'
     bintrayName = 'android-pdf-viewer'
 
-    publishedGroupId = 'com.github.barteksc'
+    publishedGroupId = 'com.github.MrWangChong'
     libraryName = 'AndroidPdfViewer'
     artifact = 'android-pdf-viewer'
 
     libraryDescription = 'Android view for displaying PDFs rendered with PdfiumAndroid'
 
-    siteUrl = 'https://github.com/barteksc/AndroidPdfViewer'
-    gitUrl = 'https://github.com/barteksc/AndroidPdfViewer.git'
+    siteUrl = 'https://github.com/MrWangChong/AndroidPdfViewer'
+    gitUrl = 'https://github.com/MrWangChong/AndroidPdfViewer.git'
 
-    libraryVersion = '3.2.0-beta.1'
+    libraryVersion = '3.2.0-final.1'
 
-    developerId = 'barteksc'
-    developerName = 'Bartosz Schiller'
-    developerEmail = 'barteksch@boo.pl'
+    developerId = 'MrWangChong'
+    developerName = 'MrWangChong'
+    developerEmail = '1054917071@qq.com'
 
     licenseName = 'The Apache Software License, Version 2.0'
     licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
@@ -29,7 +29,7 @@ android {
     compileSdkVersion 36
 
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 16
         targetSdkVersion 36
     }
 
@@ -56,6 +56,97 @@ android {
         abortOnError false
     }
 
+}
+
+// build.gradle (在 android { ... } 块之后)
+
+// 1. 必须应用 maven-publish 插件
+apply plugin: 'maven-publish'
+
+task sourcesJar(type: Jar) {
+    // 🚩 移除所有 classifier 赋值
+    from android.sourceSets.main.java.srcDirs
+}
+
+//task javadoc(type: Javadoc) {
+//    // 明确指定源文件集合
+//    source = android.sourceSets.main.java.srcDirs
+//
+//    // 🚩 关键修复：切换到最古老、最通用的发布配置 'archives'
+//    // 这是在所有现代配置都失败时，用于获取 Classpath 的终极兼容方案。
+//    classpath += project.configurations.getByName("archives")
+//
+//    // 忽略 Javadoc 警告
+//    options.addStringOption('Xdoclint:none', '-quiet')
+//    options.addStringOption('encoding', 'UTF-8')
+//}
+//
+//task javadocJar(type: Jar, dependsOn: javadoc) {
+//    // 🚩 移除所有 classifier 赋值
+//    from javadoc.destinationDir
+//}
+
+// ----------------------------------------------------
+// 3. 配置 publishing 块
+// ----------------------------------------------------
+publishing {
+    // 3.1. 配置发布的 GAV (Group, Artifact, Version)
+    publications {
+        // 使用 release 构建变体作为 Maven publication 的源
+        maven(MavenPublication) {
+            groupId = publishedGroupId
+            artifactId = artifact
+            version = libraryVersion
+            // 确保 artifact 是直接的文件路径，没有 builtBy
+            artifact("$buildDir/outputs/aar/${project.name}-release.aar")
+            // sourcesJar 也应该直接引用
+            artifact sourcesJar
+//            artifact javadocJar
+            // 配置 POM 文件的元数据（可选，但推荐）
+            pom {
+                name = libraryName
+                description = libraryDescription
+                url = siteUrl
+                licenses {
+                    license {
+                        name = licenseName
+                        url = licenseUrl
+                    }
+                }
+                developers {
+                    developer {
+                        id = developerId
+                        name = developerName
+                        email = developerEmail
+                    }
+                }
+                scm {
+                    connection = gitUrl
+                    developerConnection = gitUrl
+                    url = siteUrl
+                }
+            }
+        }
+    }
+}
+
+// 🚩 终极修复：使用 afterEvaluate + Groovy 闭包的旧版语法配置依赖
+afterEvaluate {
+    // 1. 使用 tasks.getByName 获取任务对象，而不是 Provider
+    def publishTask = tasks.getByName("publishMavenPublicationToMavenLocal")
+
+    // 2. 在获取到的任务对象上直接调用 dependsOn，并使用 tasks.getByName 引用依赖任务
+    publishTask.dependsOn(
+            // 我们确认 JitPack 识别 'bundleReleaseAar'
+            tasks.getByName('bundleReleaseAar'),
+            tasks.getByName('sourcesJar')
+    )
+
+    // ⚠️ 如果您本地编译 bundleReleaseAar 仍然报错 "Task not found"，请尝试使用 bundleRelease 替换上面的 bundleReleaseAar。
+    // publishTask.dependsOn(
+    //     tasks.getByName('bundleRelease'),
+    //     tasks.getByName('sourcesJar')
+    // )
 }
 
 dependencies {

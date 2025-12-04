@@ -9,13 +9,6 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
 subprojects {
     configurations.configureEach {
         resolutionStrategy {
@@ -25,3 +18,25 @@ subprojects {
         }
     }
 }
+
+// 告诉 JitPack 哪个子模块是我们要发布的主要工件
+// 替换成您的库模块名称
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    tasks.withType(Javadoc).configureEach {
+        // 解决 javadoc 编译问题 (可选，但推荐)
+        options.addStringOption('Xdoclint:none', '-quiet')
+        options.addStringOption('encoding', 'UTF-8')
+    }
+}
+
+// 检查 artifactoryPublish 属性是否存在，如果不存在则手动创建它
+if (project.extensions.findByName("artifactoryPublish") == null) {
+    // 创建一个假的 ext 对象，用于 JitPack 兼容
+    project.ext.artifactoryPublish = [:]
+}
+// 然后设置 targets
+project.ext.artifactoryPublish.targets = ['android-pdf-viewer']
